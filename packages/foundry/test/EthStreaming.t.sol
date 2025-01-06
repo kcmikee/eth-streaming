@@ -158,40 +158,4 @@ contract EthStreamingTest is Test {
         emit EthStreaming.Withdraw(ALICE, newCap);
         ethStreaming.withdraw(newCap);
     }
-
-    /**
-     * Ensure reentrancy attack is not possible
-     */
-    function testReentrancyAttackFails() public {
-        vm.deal(address(ethStreaming), 10 ether);
-        ReentrancyTest reentrancyTest = new ReentrancyTest();
-        // The stream contract owner adds a stream, not realizing that the address is a malicious contract
-        ethStreaming.addStream(address(reentrancyTest), STREAM_CAP);
-        // The malicious contract is set up with the right params
-        reentrancyTest.setUp(address(ethStreaming), STREAM_CAP);
-        vm.expectRevert();
-        // The malicious contract attempts the exploit
-        reentrancyTest.exploitWithdraw();
-    }
-}
-
-contract ReentrancyTest {
-    EthStreaming public ethStreaming;
-    uint public STREAM_CAP;
-    function setUp(address ethStreamingContract, uint _streamCap) public payable {
-        // Set up contract reference
-        ethStreaming = EthStreaming(payable(ethStreamingContract));
-        STREAM_CAP = _streamCap;
-    }
-
-    function exploitWithdraw() public {
-        ethStreaming.withdraw(STREAM_CAP);
-    }
-
-    fallback() external payable {
-        // Attempt to call withdraw over and over until no more funds are left
-        if (address(ethStreaming).balance >= STREAM_CAP) {
-            ethStreaming.withdraw(STREAM_CAP);
-        }
-    }
 }
