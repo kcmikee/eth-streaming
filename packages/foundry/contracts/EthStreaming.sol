@@ -18,7 +18,7 @@ contract EthStreaming is Ownable {
 
   constructor(
     uint256 _unlockTime
-  ) {
+  ) Ownable(msg.sender) {
     unlockTime = _unlockTime;
   }
 
@@ -30,11 +30,11 @@ contract EthStreaming is Ownable {
   }
 
   function withdraw(
-    uint256 amount
+    uint256 amt
   ) external {
     Stream storage stream = streams[msg.sender];
-    require(stream.cap > 0, "No stream exists");
-    require(address(this).balance >= amount, "Insufficient contract balance");
+    require(stream.cap > 0, "No available stream ");
+    require(address(this).balance >= amt, "Insufficient bal ");
 
     uint256 elapsed = block.timestamp - stream.timeOfLastWithdrawal;
     uint256 unlockedAmount;
@@ -48,18 +48,18 @@ contract EthStreaming is Ownable {
       }
     }
 
-    require(amount <= unlockedAmount, "Amount exceeds unlocked balance");
+    require(amt <= unlockedAmount, "Amount exceeds unlocked balance");
 
-    if (amount == unlockedAmount) {
+    if (amt == unlockedAmount) {
       stream.timeOfLastWithdrawal = block.timestamp;
     } else {
-      stream.timeOfLastWithdrawal = block.timestamp
-        - (((unlockedAmount - amount) * unlockTime) / stream.cap);
+      stream.timeOfLastWithdrawal =
+        block.timestamp - (((unlockedAmount - amt) * unlockTime) / stream.cap);
     }
 
-    (bool success,) = msg.sender.call{ value: amount }("");
+    (bool success,) = msg.sender.call{ value: amt }("");
     require(success, "Transfer failed");
 
-    emit Withdraw(msg.sender, amount);
+    emit Withdraw(msg.sender, amt);
   }
 }
